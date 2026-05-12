@@ -16,7 +16,7 @@ class JurusanController extends Controller
         $totalKelas = Kelas::count();
         $totalAngkatan = Kelas::distinct('tahun_masuk')->count('tahun_masuk');
 
-        return view('layouts.admin.data.jurusan.index', compact('jurusan', 'totalJurusan', 'totalKelas', 'totalAngkatan'));
+        return view('manajemen.data.jurusan.index', compact('jurusan', 'totalJurusan', 'totalKelas', 'totalAngkatan'));
     }
 
     public function store(Request $request)

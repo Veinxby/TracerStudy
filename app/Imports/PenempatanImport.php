@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\Mahasiswa;
 use App\Models\Penempatan;
 use App\Models\User;
 use App\Models\Perusahaan;
@@ -21,12 +22,12 @@ class PenempatanImport implements
         'failed'  => []
     ];
 
-    protected $users;
     protected $perusahaan;
+    protected $mahasiswa;
 
     public function __construct()
     {
-        $this->users = User::pluck('id')->toArray();
+        $this->mahasiswa = Mahasiswa::pluck('id', 'nipd')->toArray();
         $this->perusahaan = Perusahaan::pluck('id')->toArray();
     }
 
@@ -49,20 +50,20 @@ class PenempatanImport implements
                 continue;
             }
 
-            // ======================
             // CEK USER
-            // ======================
-            if (!in_array($nipd, $this->users)) {
+
+            if (!isset($this->mahasiswa[$nipd])) {
                 $this->report['failed'][] = [
                     'nipd' => $nipd,
-                    'nama' => 'User tidak ditemukan'
+                    'nama' => 'Mahasiswa tidak ditemukan'
                 ];
                 continue;
             }
 
-            // ======================
+            $mahasiswaId = $this->mahasiswa[$nipd];
+
             // CEK PERUSAHAAN
-            // ======================
+
             if (!$perusahaanId || !in_array($perusahaanId, $this->perusahaan)) {
                 $this->report['failed'][] = [
                     'nipd' => $nipd,
@@ -71,9 +72,8 @@ class PenempatanImport implements
                 continue;
             }
 
-            // ======================
             // FORMAT TANGGAL MULAI
-            // ======================
+
             $tglMulai = $rowArray['tgl_mulai'] ?? null;
 
             if (is_numeric($tglMulai)) {
@@ -89,21 +89,20 @@ class PenempatanImport implements
                 $tglSelesai = Date::excelToDateTimeObject($tglSelesai)->format('Y-m-d');
             }
 
-            // ======================
+
             // VALIDASI STATUS
-            // ======================
+
             $status = strtolower(trim($rowArray['status'] ?? 'aktif'));
 
             if (!in_array($status, ['aktif', 'selesai', 'batal'])) {
                 $status = 'aktif';
             }
 
-            // ======================
             // PUSH DATA
-            // ======================
+
             $insertData[] = [
                 'permintaan_detail_id' => null,
-                'user_id'              => $nipd,
+                'mahasiswa_id'         => $mahasiswaId,
                 'perusahaan_id'        => $perusahaanId,
                 'jenis'                => $rowArray['jenis'] ?? null,
                 'posisi'               => $rowArray['posisi'] ?? '-',

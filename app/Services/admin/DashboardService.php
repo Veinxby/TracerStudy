@@ -30,7 +30,7 @@ class DashboardService
             'penempatanAktif' => Penempatan::where('status', 'aktif')->count(),
             'penempatanSelesai' => Penempatan::where('status', 'selesai')->count(),
 
-            'penempatanTerbaru' => Penempatan::with(['user', 'perusahaan'])
+            'penempatanTerbaru' => Penempatan::with(['mahasiswa', 'perusahaan'])
                 ->latest()
                 ->take(10)
                 ->get(),

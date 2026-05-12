@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\Jurusan;
 use App\Models\Mahasiswa;
 use App\Models\User;
 use App\Models\Kelas;
@@ -20,13 +21,17 @@ class MahasiswaImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        $nipds = $rows->pluck('nipd')->toArray();
+        $nipds = $rows->pluck('nipd')->map(fn($n) => (string)$n)->toArray();
 
+        // cek nipd yang sudah ada
         $existingNipd = Mahasiswa::whereIn('nipd', $nipds)
             ->pluck('nipd')
             ->toArray();
 
         $existingNipd = array_flip($existingNipd);
+
+        // preload jurusan (biar ga query berulang)
+        $jurusanMap = Jurusan::pluck('id', 'kode_jurusan')->toArray();
 
         $kelasCache = [];
         $dataUsers = [];
@@ -34,16 +39,18 @@ class MahasiswaImport implements ToCollection, WithHeadingRow
         $validNipds = [];
         $passwordCache = [];
 
-
         try {
 
             DB::beginTransaction();
 
+            // =========================
+            // LOOP 1 → INSERT USER
+            // =========================
             foreach ($rows as $row) {
 
                 $row = $row->toArray();
 
-                $nipd = (string)$row['nipd'];
+                $nipd = trim((string)$row['nipd']);
                 $nama = $row['nama'];
 
                 if (isset($existingNipd[$nipd])) {
@@ -65,11 +72,6 @@ class MahasiswaImport implements ToCollection, WithHeadingRow
 
                 $password = $passwordCache[$passwordAwal];
 
-                $ipk = isset($row['ipk'])
-                    ? str_replace(',', '.', $row['ipk'])
-                    : 0;
-
-
                 $dataUsers[] = [
                     'username' => $nipd,
                     'nama' => $nama,
@@ -90,29 +92,50 @@ class MahasiswaImport implements ToCollection, WithHeadingRow
             }
 
             // insert user batch
-            User::insert($dataUsers);
+            if (!empty($dataUsers)) {
+                User::insert($dataUsers);
+            }
 
-            // ambil id user sekali saja
+            // ambil id user
             $users = User::whereIn('username', $validNipds)
                 ->pluck('id', 'username');
 
-
+            // =========================
+            // LOOP 2 → INSERT MAHASISWA
+            // =========================
             foreach ($rows as $row) {
 
                 $row = $row->toArray();
 
-                $nipd = (string)$row['nipd'];
+                $nipd = trim((string)$row['nipd']);
 
                 if (!isset($users[$nipd])) {
                     continue;
                 }
 
-                $key = $row['jurusan'] . '-' . $row['kode_kelas'] . '-' . $row['tahun_masuk'];
+                // ===== FIX JURUSAN =====
+                $kodeJurusan = trim($row['jurusan']);
+
+                if (!isset($jurusanMap[$kodeJurusan])) {
+
+                    $this->report['failed'][] = [
+                        'nipd' => $nipd,
+                        'nama' => $row['nama'],
+                        'error' => 'Jurusan tidak ditemukan: ' . $kodeJurusan
+                    ];
+
+                    continue;
+                }
+
+                $jurusanId = $jurusanMap[$kodeJurusan];
+
+                // cache kelas
+                $key = $jurusanId . '-' . $row['kode_kelas'] . '-' . $row['tahun_masuk'];
 
                 if (!isset($kelasCache[$key])) {
 
                     $kelasCache[$key] = Kelas::firstOrCreate([
-                        'jurusan_id' => $row['jurusan'],
+                        'jurusan_id' => $jurusanId,
                         'kode_kelas' => $row['kode_kelas'],
                         'tahun_masuk' => $row['tahun_masuk']
                     ]);
@@ -140,12 +163,13 @@ class MahasiswaImport implements ToCollection, WithHeadingRow
             }
 
             // insert mahasiswa batch
-            Mahasiswa::insert($dataMahasiswa);
+            if (!empty($dataMahasiswa)) {
+                Mahasiswa::insert($dataMahasiswa);
+            }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-
             throw $e;
         }
     }

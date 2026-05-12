@@ -15,7 +15,7 @@ class DataPerusahaanController extends Controller
     {
         $perusahaan = Perusahaan::orderBy('nama_perusahaan', 'asc')->get();
 
-        return view('layouts.admin.data.dataPerusahaan', compact('perusahaan'));
+        return view('manajemen.data.dataPerusahaan', compact('perusahaan'));
     }
 
     public function search(Request $request)

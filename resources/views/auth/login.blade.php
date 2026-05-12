@@ -72,6 +72,58 @@
             border-left-color: #fc544b;
         }
 
+        .throttle-alert{
+            display:flex;
+            align-items:flex-start;
+            gap:12px;
+
+            background:#fff5f5;
+            border:1px solid #fed7d7;
+            border-left:5px solid #fc544b;
+
+            padding:14px 16px;
+            border-radius:10px;
+            margin-bottom:20px;
+
+            animation:slideDown .3s ease;
+        }
+
+        .throttle-content{
+            flex:1;
+        }
+
+        .throttle-title{
+            font-weight:600;
+            color:#c53030;
+            margin-bottom:2px;
+        }
+
+        .throttle-subtitle{
+            font-size:13px;
+            color:#9b2c2c;
+        }
+
+        #countdown{
+            font-weight:700;
+        }
+
+        .custom-alert{
+            border-radius:12px;
+            box-shadow:0 4px 10px rgba(0,0,0,.08);
+            animation:slideDown .3s ease;
+        }
+
+        @keyframes slideDown{
+            from{
+                opacity:0;
+                transform:translateY(-6px);
+            }
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
         .btn-close {
             position: absolute;
             right: 10px;
@@ -254,16 +306,27 @@
             <h4 >Login</h4>
             <p class="subtitle">Silahkan masuk menggunakan akun anda untuk melacak data alumni dan perkembangan karir.</p>
 
-            @if(session('throttle'))
+            @if(session('throttle') || isset($throttle))
                 <div class="alert alert-danger" id="throttleAlert">
-                    <strong>⚠️ Too Many Attempts.</strong>
-                   Try again in 
-                    <span id="countdown">{{ session('retry_after') }}</span> detik.
+                    <i class="fas fa-lock mr-1"></i>
+
+                    Terlalu banyak percobaan login.
+                    
+                    Coba lagi dalam
+                    <strong id="countdown">
+                        {{ session('retry_after') ?? $retry_after ?? 0 }}
+                    </strong>
+                     detik.
                 </div>
-            @elseif(session('error'))
+            @endif
+            
+            @if(session('authError'))
                 <div class="alert alert-danger" id="loginAlert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" onclick="closeAlert()">&times;</button>
+
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+
+                    {{ session('authError') }}
+                    
                 </div>
             @endif
 
@@ -280,24 +343,39 @@
                 @csrf
                 <div class="form-group">
                     <label for="login">NIPD / Email</label>
-                    <input type="text" id="login" name="login" class="form-control login-input" placeholder="Masukkan NIPD atau email anda" value="{{ old('login') }}" required>
+                    <input type="text"
+                            id="login"  
+                            name="login" 
+                            class="form-control login-input" 
+                            {{ (session('throttle') || isset($throttle)) ? 'disabled' : '' }} 
+                            placeholder="Masukkan NIPD atau email anda" 
+                            value="{{ old('login') }}" 
+                            autocomplete="username"
+                            required>
+                            @error('login')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
                 </div>
 
                 <div class="form-group password-group">
 
-                    <label>Password</label>
-
+                    <label for="password">Password</label>
                     <input type="password"
                             id="password"
+                            {{ (session('throttle') || isset($throttle)) ? 'disabled' : '' }}
                             name="password"
                             class="form-control pass-input"
                             placeholder="Masukkan password"
+                            autocomplete="current-password"
                             required>
 
                     <span class="toggle-password">
                         <i class="fas fa-eye"></i>
                     </span>
 
+                    @error('password')
+                        <small class="text-danger">{{ $message }}</small>
+                    @enderror
                 </div>
 
                 <label class="remember-me">
@@ -305,7 +383,7 @@
                     <span>Ingat Sesi Saya</span>
                 </label>
 
-                <button type="submit" class="btn-login">Masuk ke Sistem</button>
+                <button type="submit" class="btn-login" {{ (session('throttle') || isset($throttle)) ? 'disabled' : '' }}>Masuk ke Sistem</button>
             </form>
         </div>
 
@@ -322,88 +400,75 @@
 
     <script src="{{ asset('modules/jquery.min.js')}}"></script>
     <script src="{{ asset('modules/sweetalert/sweetalert.min.js')}}"></script>
+
     <script>
         $(document).ready(function(){
 
-            @if(session('success'))
+           
+            // AUTO HIDE SUCCESS
+            setTimeout(() => {
+                $('#successAlert').fadeOut(300);
+            }, 2000);
+
+            @if(session('successLogin'))
 
                 swal({
                     title: "Login Berhasil",
-                    text: "{{ session('success') }}",
+                    text: "{{ session('successLogin') }}",
                     icon: "success",
                     buttons: false,
                     timer: 1500
                 });
 
-                setTimeout(function(){
-                    window.location.href = "{{ session('redirect') }}";
-                },1500);
-
             @endif
 
 
-            @if(session('error'))
+            // @if(session('authError'))
 
-                swal({
-                    title: "Login Gagal",
-                    text: "{{ session('error') }}",
-                    icon: "error",
-                });
+            //     swal({
+            //         title: "Login Gagal",
+            //         text: "Silahkan Coba lagi",
+            //         icon: "error",
+            //     });
 
-            @endif
-
-            @if(session('throttle'))
-                <div style="position: fixed; bottom:20px; right:20px; z-index:9999;">
-
-                    <div class="toast show" id="throttleToast">
-
-                        <div class="toast-header bg-danger text-white">
-                            <strong class="mr-auto">Terlalu Banyak Percobaan</strong>
-                        </div>
-
-                        <div class="toast-body">
-                            Silahkan coba lagi dalam
-                            <strong id="countdown">{{ session('retry_after') }}</strong>
-                            detik
-                        </div>
-
-                    </div>
-
-                </div>
-            @endif
+            // @endif
 
 
             let seconds = parseInt($('#countdown').text());
 
-            if(!seconds) return;
+            if (!isNaN(seconds) && seconds > 0) {
 
-            const btn = $('.btn-login');
-            const inputs = $('.login-input, .pass-input');
+                const btn = $('.btn-login');
+                const inputs = $('.login-input, .pass-input');
 
-            btn.prop('disabled', true);
-            inputs.prop('disabled', true);
+                btn.prop('disabled', true);
+                inputs.prop('disabled', true);
 
-            let timer = setInterval(function(){
+                let timer = setInterval(function(){
 
-                seconds--;
-                $('#countdown').text(seconds);
+                    seconds--;
+                    $('#countdown').text(seconds);
 
-                if(seconds <= 0){
+                    if(seconds <= 0){
 
-                    clearInterval(timer);
+                        clearInterval(timer);
 
-                    btn.prop('disabled', false);
-                    inputs.prop('disabled', false);
+                        btn.prop('disabled', false);
+                        inputs.prop('disabled', false);
 
-                    $('#throttleToast').remove();
+                        $('#throttleAlert').fadeOut(300, function(){
+                            $(this).remove();
+                        });
 
-                }
+                    }
 
-            },1000);
+                },1000);
 
+            }
 
             
         });
+
         // Hide Unhide Password
         $(document).on('click','.toggle-password',function(){
 

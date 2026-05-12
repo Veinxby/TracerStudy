@@ -10,6 +10,6 @@ class AdminDashboardController extends Controller
 {
     public function index(DashboardService $service)
     {
-        return view('layouts.admin.dashboard.dashboard', $service->data());
+        return view('manajemen.dashboard.index', $service->data());
     }
 }

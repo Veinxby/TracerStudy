@@ -25,13 +25,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(2)
-                ->by($request->ip());
-        });
+        // RateLimiter::for('login', function (Request $request) {
+        //     return Limit::perMinute(2)
+        //         ->by($request->ip());
+        // });
 
         // Semua view di folder layouts/admin/ akan menerima adminName
-        View::composer('layouts.admin.*', function ($view) {
+        View::composer('manajemen.*', function ($view) {
             $view->with('adminName', Auth::check() ? Auth::user()->nama : null);
         });
     }

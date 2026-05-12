@@ -43,7 +43,7 @@ class DataMhsController extends Controller
             ->orderBy('tahun_masuk', 'desc')
             ->pluck('tahun_masuk');
 
-        return view('layouts.admin.data.dataMhs', compact(
+        return view('manajemen.data.dataMhs', compact(
             'mahasiswa',
             'jurusanList',
             'angkatanList'
@@ -84,6 +84,7 @@ class DataMhsController extends Controller
     {
         $mahasiswa = Mahasiswa::with(['user', 'kelas'])->findOrFail($id);
         $kelas = Kelas::select('id', 'jurusan_id', 'kode_kelas', 'tahun_masuk')
+            ->with('jurusan')
             ->orderBy('tahun_masuk', 'desc')
             ->get();
 
@@ -95,36 +96,53 @@ class DataMhsController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'nama'      => 'required|string',
-            'email'     => 'sometimes|nullable|email',
+        $validated = $request->validate([
+            'nama'      => 'required|string|max:100',
+            'email'     => 'sometimes|nullable|email|max:100',
             'jk'        => 'required|in:L,P',
-            'no_hp'     => 'nullable|string',
-            'domisili'  => 'nullable|string',
+            'no_hp'     => 'nullable|string|max:15',
+            'domisili'  => 'nullable|string|max:255',
             'kelas_id'  => 'required|exists:kelas,id',
+            'ipk'       => 'nullable|numeric|max:4',
+            'ipk'       => 'nullable'
         ], [
             'nama.required'     => 'Nama wajib diisi',
+            'nama.max'          => 'Nama maksimal 100 karakter',
+
+            'email.email'       => 'Format email tidak valid',
+            'email.max'         => 'Email maksimal 100 karakter',
+
             'jk.required'       => 'Jenis kelamin wajib dipilih',
             'jk.in'             => 'Jenis kelamin tidak valid',
-            'email.email'       => 'Format email tidak valid',
+
             'kelas_id.required' => 'Kelas wajib dipilih',
             'kelas_id.exists'   => 'Kelas tidak valid',
+
+            'ipk.numeric'       => 'IPK harus berupa angka',
+            'ipk.max'           => 'IPK maksimal 4.00',
         ]);
 
-        $mahasiswa = Mahasiswa::with('user')->findOrFail($id);
+        $mahasiswa = Mahasiswa::with('user')
+            ->findOrFail($id);
+
+        $email = $validated['email'] ?? null;
+        if ($email === '') {
+            $email = null;
+        }
 
         // update tabel user
         $mahasiswa->user->update([
-            'nama'  => $request->nama,
-            'email' => $request->email,
+            'nama'  => trim($validated['nama']),
+            'email' => $email,
         ]);
 
         // update tabel mahasiswa
         $mahasiswa->update([
-            'jk'        => $request->jk,
-            'no_hp'     => $request->no_hp,
-            'domisili'  => $request->domisili,
-            'kelas_id'  => $request->kelas_id,
+            'jk'        => $validated['jk'],
+            'no_hp'     => $validated['no_hp'],
+            'domisili'  => trim($validated['domisili'] ?? ''),
+            'kelas_id'  => $validated['kelas_id'],
+            'ipk'       => $validated['ipk'],
         ]);
 
         return response()->json([
@@ -174,7 +192,7 @@ class DataMhsController extends Controller
         ])->where('nipd', $nipd)->firstOrFail();
 
         // Kirim data ke view
-        return view('layouts.admin.data.detailMhs', [
+        return view('manajemen.data.detailMhs', [
             'mahasiswa' => $mahasiswa,
         ]);
     }

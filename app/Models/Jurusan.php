@@ -14,6 +14,7 @@ class Jurusan extends Model
     public $incrementing = false;
     protected $fillable = [
         'id',
+        'kode_jurusan',
         'nama',
         'degree',
         'lama_studi',

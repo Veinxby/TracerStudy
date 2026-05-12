@@ -21,7 +21,7 @@ class InterviewController extends Controller
 
         $totalInterview = Interview::count();
 
-        return view('layouts.admin.aktifitas.interview', compact('interviews', 'totalInterview'));
+        return view('manajemen.aktifitas.interview', compact('interviews', 'totalInterview'));
     }
 
     // public function store(Request $request)

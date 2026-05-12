@@ -33,10 +33,10 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.process');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])
+Route::get('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
@@ -46,7 +46,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])
+Route::middleware(['auth', 'role:adm_tracer,it,educ'])
     ->prefix('adm')
     ->name('admin.')
     ->group(function () {
@@ -86,6 +86,7 @@ Route::middleware(['auth'])
 
             Route::post('permintaan/{id}/unlock', [PermintaanController::class, 'unlock'])->name('permintaan.unlock');
             Route::get('permintaan/generate-kode', [PermintaanController::class, 'generateKode'])->name('permintaan.generateKode');
+            Route::post('permintaan/import', [PermintaanController::class, 'import'])->name('permintaan.import');
             Route::resource('permintaan', PermintaanController::class);
 
             // Permintaan Kandidat
@@ -143,10 +144,15 @@ Route::middleware(['auth'])
     });
 
 
-Route::middleware(['auth', 'role:mhs'])->group(function () {
-    Route::get('/mhs/dashboard', [MahasiswaDashboardController::class, 'index'])
-        ->name('mahasiswa.dashboard');
-});
+Route::middleware(['auth', 'role:mhs'])
+    ->prefix('mhs')
+    ->name('mhs.')
+    ->group(function () {
+        Route::get('dashboard', [MahasiswaDashboardController::class, 'index'])
+            ->name('dashboard');
+        Route::get('profile', [MahasiswaDashboardController::class, 'profile'])
+            ->name('dashboard');
+    });
 
 
 Route::middleware(['auth', 'role:bm'])->group(function () {

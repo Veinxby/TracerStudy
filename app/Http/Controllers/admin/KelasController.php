@@ -26,7 +26,7 @@ class KelasController extends Controller
             ->distinct('tahun_masuk')
             ->count('tahun_masuk');
 
-        return view('layouts.admin.data.jurusan.kelas', compact(
+        return view('manajemen.data.jurusan.kelas', compact(
             'jurusan',
             'kelas',
             'totalKelas',
@@ -60,7 +60,7 @@ class KelasController extends Controller
 
         $jumlahLulus = $mahasiswa->where('status_akademik', 'lulus')->count();
 
-        return view('layouts.admin.data.jurusan.mahasiswaByKelas', compact(
+        return view('manajemen.data.jurusan.mahasiswaByKelas', compact(
             'jurusan',
             'kelas',
             'mahasiswa',

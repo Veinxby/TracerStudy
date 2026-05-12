@@ -30,7 +30,7 @@ class PermintaanKandidatController extends Controller
             ->where('permintaan_id', $permintaan->id)
             ->get();
 
-        return view('layouts.admin.penempatan.detail.index', compact('permintaan', 'kandidat'));
+        return view('manajemen.penempatan.detail.index', compact('permintaan', 'kandidat'));
     }
 
     public function create(Request $request, Permintaan $permintaan)
@@ -84,7 +84,7 @@ class PermintaanKandidatController extends Controller
         // Menarik data relasi perusahaan ke dalam objek $permintaan yang sudah ada
         $permintaan->load('perusahaan');
 
-        return view('layouts.admin.penempatan.detail.create', compact(
+        return view('manajemen.penempatan.detail.create', compact(
             'permintaan',
             'mahasiswa',
             'jurusan',
@@ -180,7 +180,7 @@ class PermintaanKandidatController extends Controller
             return back()->with('error', 'Belum ada kandidat untuk diproses.');
         }
 
-        return view('layouts.admin.penempatan.detail.proses', compact('permintaan', 'kandidat'));
+        return view('manajemen.penempatan.detail.proses', compact('permintaan', 'kandidat'));
     }
 
     public function prosesStore(Request $request, $id)
@@ -248,7 +248,7 @@ class PermintaanKandidatController extends Controller
                     'mahasiswa_id'          => $detail->mahasiswa_id,
                     'perusahaan_id'         => $permintaan->perusahaan_id,
                     'posisi'                => $permintaan->posisi,
-                    'tgl_interview'         => $permintaan->tgl_panggilan,
+                    'tgl_interview'         => $permintaan->tgl_permintaan,
                     'metode'                => 'offline',
                     'hasil'                 => $data['status'],
                     'alasan_gagal'          => $isGagal ? $alasanDropdown : null,
@@ -355,7 +355,7 @@ class PermintaanKandidatController extends Controller
         }
 
         return view(
-            'layouts.admin.penempatan.detail.edit',
+            'manajemen.penempatan.detail.edit',
             compact('permintaan', 'detail')
         );
     }

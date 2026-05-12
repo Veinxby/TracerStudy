@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\PermintaanImport;
 use App\Models\Permintaan;
 use App\Models\Perusahaan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
 
 class PermintaanController extends Controller
@@ -18,16 +20,16 @@ class PermintaanController extends Controller
         $totalPermintaan = Permintaan::count();
         $permintaan = Permintaan::with(['perusahaan', 'details'])
             ->withCount('details')
-            ->orderBy('tgl_panggilan', 'desc')
+            ->orderBy('tgl_permintaan', 'desc')
             ->limit(500)
             ->get();
 
-        return view('layouts.admin.penempatan.index', compact('permintaan', 'totalPermintaan'));
+        return view('manajemen.penempatan.index', compact('permintaan', 'totalPermintaan'));
     }
 
     public function create()
     {
-        return view('layouts.admin.penempatan.create');
+        return view('manajemen.penempatan.create');
     }
 
     public function generateKode(Request $request)
@@ -99,7 +101,7 @@ class PermintaanController extends Controller
                 'jenis' => $request->jenis,
                 'posisi' => $request->posisi,
                 'kuota' => $request->kuota,
-                'tgl_panggilan' => $request->tgl_panggilan,
+                'tgl_permintaan' => $request->tgl_permintaan,
                 'catatan' => $request->catatan,
                 'status' => 'open',
             ]);
@@ -122,7 +124,7 @@ class PermintaanController extends Controller
         $perusahaan = Perusahaan::all();
 
         // 3. Arahkan ke view sesuai permintaan kamu
-        return view('layouts.admin.penempatan.edit', compact('p', 'perusahaan'));
+        return view('manajemen.penempatan.edit', compact('p', 'perusahaan'));
     }
     public function update(Request $request, $id)
     {
@@ -141,7 +143,7 @@ class PermintaanController extends Controller
                 'integer',
                 'min:' . $permintaan->details_count
             ],
-            'tgl_panggilan' => 'required|date',
+            'tgl_permintaan' => 'required|date',
             'catatan'       => 'nullable',
         ], [
             'kuota.min' => 'Kuota tidak boleh kurang dari jumlah kandidat yang sudah ditambahkan (' . $permintaan->details_count . ')'
@@ -177,5 +179,29 @@ class PermintaanController extends Controller
         $p->unlock();
 
         return back()->with('success', 'Data berhasil dibuka kembali.');
+    }
+
+    public function import(Request $request)
+    {
+        // ✅ Validasi file
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,csv|max:2048',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // 🔥 Proses import (multi sheet)
+            Excel::import(new PermintaanImport, $request->file('file'));
+
+            DB::commit();
+
+            return back()->with('success', 'Import berhasil!');
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return back()->with('error', 'Import gagal: ' . $e->getMessage());
+        }
     }
 }

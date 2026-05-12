@@ -18,7 +18,7 @@ class PenempatanController extends Controller
         $status = $request->query('status');
 
         $query = Penempatan::with([
-            'user',
+            'mahasiswa.user',
             'perusahaan',
             'permintaanDetail.permintaan'
         ]);
@@ -41,7 +41,7 @@ class PenempatanController extends Controller
         $totalAktif  = Penempatan::aktif()->count();
         $totalSelesai  = Penempatan::selesai()->count();
 
-        return view('layouts.admin.aktifitas.penempatan', compact(
+        return view('manajemen.aktifitas.penempatan', compact(
             'penempatan',
             'jenis',
             'status',
